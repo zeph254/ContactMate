@@ -1,4 +1,5 @@
 import { FaUserFriends, FaSearch, FaTrashAlt, FaSyncAlt, FaMobileAlt } from 'react-icons/fa';
+import React from 'react';
 
 export default function Home() {
   return (

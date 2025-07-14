@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import React from 'react';
 import useContacts from '../hooks/useContacts';
-import { FaUserPlus, FaSearch, FaEdit, FaTrash, FaTimes, FaCheck } from 'react-icons/fa';
+import { FaUserPlus, FaSearch, FaEdit, FaTrash, FaTimes, FaCheck,FaShare } from 'react-icons/fa';
 
 export default function ContactPage() {
   const {
@@ -24,12 +25,83 @@ export default function ContactPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [contactToShare, setContactToShare] = useState(null);
 
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+  const handleShare = (contact) => {
+  setContactToShare(contact);
+  setShareModalOpen(true);
+};
+
+const shareViaWebAPI = async () => {
+  try {
+    const shareData = {
+      title: `Contact: ${contactToShare.name}`,
+      text: `Name: ${contactToShare.name}\nPhone: ${contactToShare.phone}\nEmail: ${contactToShare.email || ''}`,
+    };
+    
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      // Fallback to clipboard copy
+      await navigator.clipboard.writeText(shareData.text);
+      alert('Contact copied to clipboard!');
+    }
+  } catch (err) {
+    console.error('Error sharing:', err);
+  } finally {
+    setShareModalOpen(false);
+  }
+};
+const downloadVCard = () => {
+  const vCardData = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    `FN:${contactToShare.name}`,
+    `TEL:${contactToShare.phone}`,
+    ...(contactToShare.email ? [`EMAIL:${contactToShare.email}`] : []),
+    'END:VCARD'
+  ].join('\n');
+
+  const blob = new Blob([vCardData], { type: 'text/vcard' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${contactToShare.name}.vcf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  setShareModalOpen(false);
+};
+
+const copyToClipboard = async () => {
+  try {
+    const text = `Name: ${contactToShare.name}\nPhone: ${contactToShare.phone}\nEmail: ${contactToShare.email || ''}`;
+    await navigator.clipboard.writeText(text);
+    alert('Contact copied to clipboard!');
+  } catch (err) {
+    console.error('Failed to copy:', err);
+    alert('Failed to copy contact details');
+  } finally {
+    setShareModalOpen(false);
+  }
+};
+
+const shareViaEmail = () => {
+  const subject = `Contact: ${contactToShare.name}`;
+  const body = `Here's the contact information:\n\nName: ${contactToShare.name}\nPhone: ${contactToShare.phone}\nEmail: ${contactToShare.email || ''}`;
+  window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  setShareModalOpen(false);
+};
 
   // Handle form submission
   const handleSubmit = (e) => {
@@ -191,6 +263,61 @@ export default function ContactPage() {
           </div>
         </div>
       )}
+      {/* Share Contact Modal */}
+        {shareModalOpen && contactToShare && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+              <div className="p-6">
+                <h2 className="text-xl font-semibold mb-4">
+                  Share {contactToShare.name}'s Contact
+                </h2>
+                
+                <div className="space-y-3 mb-6">
+                  <p className="text-gray-600">Choose how to share this contact:</p>
+                  
+                  <button
+                    onClick={shareViaWebAPI}
+                    className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+                  >
+                    <FaShare /> Share via...
+                  </button>
+                  
+                  <button
+                    onClick={copyToClipboard}
+                    className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition"
+                  >
+                    Copy to Clipboard
+                  </button>
+                  <button
+                    onClick={downloadVCard}
+                    className="w-full flex items-center justify-center gap-2 bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition"
+                  >
+                    Download vCard
+                  </button>
+                  
+                  {contactToShare.email && (
+                    <button
+                      onClick={shareViaEmail}
+                      className="w-full flex items-center justify-center gap-2 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+                    >
+                      Share via Email
+                    </button>
+                
+                  )}
+                </div>
+                
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShareModalOpen(false)}
+                    className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Contacts List */}
       {filteredContacts.length === 0 ? (
@@ -220,6 +347,13 @@ export default function ContactPage() {
                       aria-label="Delete contact"
                     >
                       <FaTrash />
+                    </button>
+                      <button
+                      onClick={() => handleShare(contact)}
+                      className="text-green-600 hover:text-green-800 transition"
+                      aria-label="Share contact"
+                    >
+                      <FaShare />
                     </button>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import {
   deleteContact as storageDeleteContact,
   searchContacts as storageSearchContacts
 } from '../utils/contactStorage';
+import react from 'react';
 
 export default function useContacts() {
   const [contacts, setContacts] = useState([]);
