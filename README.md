@@ -38,6 +38,8 @@ npm run dev
 
 ## 💻 Live Demo
 
+https://yourcontactmate.netlify.app/
+
 ## 📂 Project Structure
 
 src/
